@@ -16,6 +16,7 @@ private:
   int linear_, angular_;
   double l_scale_, a_scale_;
   ros::Publisher argo_twist_pub_;
+  ros::Publisher argo_twist_pub_R;
   ros::Subscriber argo_joy_sub_;
   
 };
@@ -33,6 +34,7 @@ ArgoBaseController::ArgoBaseController():
 
 
   argo_twist_pub_ = nh_.advertise<geometry_msgs::Twist>("argo_base/cmd_vel", 1);
+  argo_twist_pub_R = nh_.advertise<geometry_msgs::Twist>("roboteq_driver/argo_base/cmd_vel", 1);
   argo_joy_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy", 10, &ArgoBaseController::joyCallback, this);
 
 }
@@ -43,6 +45,8 @@ void ArgoBaseController::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
   twist.angular.z = a_scale_*joy->axes[angular_];
   twist.linear.x = l_scale_*joy->axes[linear_];
   argo_twist_pub_.publish(twist);
+  argo_twist_pub_R.publish(twist);
+   
 }
 
 
