@@ -42,8 +42,18 @@ ArgoBaseController::ArgoBaseController():
 void ArgoBaseController::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
 {
   geometry_msgs::Twist twist;
-  twist.angular.z = a_scale_*joy->axes[angular_];
+  //twist.angular.z = a_scale_*joy->axes[angular_];
   twist.linear.x = l_scale_*joy->axes[linear_];
+  
+  if (joy->buttons[4]==1)
+    twist.angular.x = 1;
+  else
+    twist.angular.x = 0;
+  if (joy->buttons[5]==1)
+    twist.angular.y = 1;
+  else
+    twist.angular.y = 0;
+
   argo_twist_pub_.publish(twist);
   argo_twist_pub_R.publish(twist);
    
