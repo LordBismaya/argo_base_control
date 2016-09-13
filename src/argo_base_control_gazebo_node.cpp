@@ -56,8 +56,7 @@ ArgoBaseController::ArgoBaseController():
   nh_.param("scale_linear", l_scale_, l_scale_);
 
 
-  argo_twist_pub_ = nh_.advertise<geometry_msgs::Twist>("argo_base/cmd_vel", 1);
-  argo_twist_pub_R = nh_.advertise<geometry_msgs::Twist>("roboteq_driver/argo_base/cmd_vel", 1);
+  argo_twist_pub_ = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
   argo_joy_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy", 10, &ArgoBaseController::joyCallback, this);
 
 }
@@ -65,20 +64,10 @@ ArgoBaseController::ArgoBaseController():
 void ArgoBaseController::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
 {
   geometry_msgs::Twist twist;
-  //twist.angular.z = a_scale_*joy->axes[angular_];
+  twist.angular.z = a_scale_*joy->axes[angular_];
   twist.linear.x = l_scale_*joy->axes[linear_];
   
-  if (joy->buttons[4]==1)
-    twist.angular.x = 1;
-  else
-    twist.angular.x = 0;
-  if (joy->buttons[5]==1)
-    twist.angular.y = 1;
-  else
-    twist.angular.y = 0;
-
   argo_twist_pub_.publish(twist);
-  argo_twist_pub_R.publish(twist);
    
 }
 
