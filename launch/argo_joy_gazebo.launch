@@ -10,7 +10,7 @@
  <!-- Axes -->
   <param name="axis_linear" value="1" type="int"/>
   <param name="axis_angular" value="0" type="int"/>
-  <param name="scale_linear" value="3" type="double"/>
+  <param name="scale_linear" value="3 type="double"/>
   <param name="scale_angular" value="0.5" type="double"/>
 
   <node pkg="argo_base_control" type="argo_base_control_gazebo_node" name="argo_base_controller"/>
