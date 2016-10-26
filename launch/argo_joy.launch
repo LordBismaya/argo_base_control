@@ -1,5 +1,7 @@
+<?xml version="1.0"?>
 <launch>
 
+ <!-- Remove turtleSim and Provide Gazebo Preview-->
  <!-- Turtlesim Node For Reference-->
   <node pkg="turtlesim" type="turtlesim_node" name="sim"/>
 
