@@ -24,6 +24,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
 #include <sensor_msgs/Joy.h>
+#include <rosserial_arduino/Adc.h>
+
+//Brake Limit ADC Values HARD
+#define HARD_HIGH_0 300
+#define HARD_LOW_0 130
+
+#define HARD_HIGH_1 275
+#define HARD_LOW_1 140
 
 
 class ArgoBaseController
@@ -41,6 +49,7 @@ private:
   ros::Publisher argo_twist_pub_;
   ros::Publisher argo_twist_pub_R;
   ros::Subscriber argo_joy_sub_;
+  int leftBrakePos, rightBrakePos;
   
 };
 
@@ -50,6 +59,8 @@ ArgoBaseController::ArgoBaseController():
   angular_(2)
 {
 
+  leftBrakePos=300;//Max for safety
+  rightBrakePos=300;//Max for Safety
   nh_.param("axis_linear", linear_, linear_);
   nh_.param("axis_angular", angular_, angular_);
   nh_.param("scale_angular", a_scale_, a_scale_);
@@ -59,23 +70,38 @@ ArgoBaseController::ArgoBaseController():
   argo_twist_pub_ = nh_.advertise<geometry_msgs::Twist>("argo_base/cmd_vel", 1);
   argo_twist_pub_R = nh_.advertise<geometry_msgs::Twist>("roboteq_driver/argo_base/cmd_vel", 1);
   argo_joy_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy", 10, &ArgoBaseController::joyCallback, this);
+  argo_brake_sub = nh_.subscribe("brakeInfo",1,&ArgoBaseController::brakeCallback,this);
 
+}
+
+void ArgoBaseController::brakeCallback(const rosserial_arduino::adc& brakePos)
+{
+  leftBrakePos=brakePos.adc1;
+  rightBrakePos=brakePos.adc0;
+  ROS_INFO("%d,%d",brakePos.adc0,brakePos.adc1);
 }
 
 void ArgoBaseController::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
 {
   geometry_msgs::Twist twist;
-  //twist.angular.z = a_scale_*joy->axes[angular_];
+ // twist.angular.z = a_scale_*joy->axes[angular_];
   twist.linear.x = l_scale_*joy->axes[linear_];
   
+  //HAVE TO KEEP PROVISIONS FOR IF FEEDBACK IS ENABLED
+  //If either crossess limit dont force it to go either way
+  if (leftBrakePos<HARD_LOW_1 || leftBrakePos>HARD_HIGH_1)
+    twist.angular.x=0;
+  else if (rightBrakePos<HARD_LOW_0 ||rightBrakePos>HARD_HIGH_0)
+    twist.angular.y=0;
+  //0=No action,1=FWD,-1=RVS
   if (joy->buttons[4]==1)
     twist.angular.x = 1;
   else
-    twist.angular.x = 0;
+    twist.angular.x =-1;
   if (joy->buttons[5]==1)
     twist.angular.y = 1;
   else
-    twist.angular.y = 0;
+    twist.angular.y = -1;
 
   argo_twist_pub_.publish(twist);
   argo_twist_pub_R.publish(twist);
