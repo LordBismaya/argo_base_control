@@ -41,14 +41,18 @@ public:
 
 private:
   void joyCallback(const sensor_msgs::Joy::ConstPtr& joy);
-  
+  void brakeCallback(const rosserial_arduino::Adc::ConstPtr& brakeInfo);
+
   ros::NodeHandle nh_;
 
   int linear_, angular_;
   double l_scale_, a_scale_;
+
   ros::Publisher argo_twist_pub_;
   ros::Publisher argo_twist_pub_R;
   ros::Subscriber argo_joy_sub_;
+  ros::Subscriber argo_brake_sub;
+  
   int leftBrakePos, rightBrakePos;
   
 };
@@ -59,8 +63,8 @@ ArgoBaseController::ArgoBaseController():
   angular_(2)
 {
 
-  leftBrakePos=300;//Max for safety
-  rightBrakePos=300;//Max for Safety
+  leftBrakePos=140;//Min. Will soon be upadated as soon as feedback is available
+  rightBrakePos=140;//Min. Will soon be updated as soon as feedback is available
   nh_.param("axis_linear", linear_, linear_);
   nh_.param("axis_angular", angular_, angular_);
   nh_.param("scale_angular", a_scale_, a_scale_);
@@ -70,15 +74,17 @@ ArgoBaseController::ArgoBaseController():
   argo_twist_pub_ = nh_.advertise<geometry_msgs::Twist>("argo_base/cmd_vel", 1);
   argo_twist_pub_R = nh_.advertise<geometry_msgs::Twist>("roboteq_driver/argo_base/cmd_vel", 1);
   argo_joy_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy", 10, &ArgoBaseController::joyCallback, this);
-  argo_brake_sub = nh_.subscribe("brakeInfo",1,&ArgoBaseController::brakeCallback,this);
+  argo_brake_sub = nh_.subscribe<rosserial_arduino::Adc>("roboteq_driver/brakeInfo",10, &ArgoBaseController::brakeCallback, this);
 
 }
 
-void ArgoBaseController::brakeCallback(const rosserial_arduino::adc& brakePos)
+void ArgoBaseController::brakeCallback(const rosserial_arduino::Adc::ConstPtr& brakeInfo)
 {
-  leftBrakePos=brakePos.adc1;
-  rightBrakePos=brakePos.adc0;
-  ROS_INFO("%d,%d",brakePos.adc0,brakePos.adc1);
+  leftBrakePos=brakeInfo->adc1;
+  rightBrakePos=brakeInfo->adc0;
+  //hacky. Publish this info as Twist linear y and z
+
+  ROS_INFO("%d,%d",leftBrakePos,rightBrakePos);
 }
 
 void ArgoBaseController::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
@@ -87,6 +93,8 @@ void ArgoBaseController::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
  // twist.angular.z = a_scale_*joy->axes[angular_];
   twist.linear.x = l_scale_*joy->axes[linear_];
   
+  twist.linear.y = leftBrakePos;
+  twist.linear.z = rightBrakePos;  
   //HAVE TO KEEP PROVISIONS FOR IF FEEDBACK IS ENABLED
   //If either crossess limit dont force it to go either way
   if (leftBrakePos<HARD_LOW_1 || leftBrakePos>HARD_HIGH_1)

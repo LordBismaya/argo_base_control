@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+	<include file="$(find argo_base_control)/launch/argo_joy.launch"/>
+	
+	<group>
+		<remap from="argo_base/cmd_vel" to="roboteq_driver/argo_base/cmd_vel"/>
+		<remap from="brakeInfo" to="roboteq_driver/brakeInfo"/>
+		<include file="$(find roboteq_driver)/launch/example.launch" ns="roboteq"/>
+	</group>
+</launch>

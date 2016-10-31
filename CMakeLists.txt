@@ -12,6 +12,9 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   serial
+  rosserial_arduino
+  rosserial_client
+  joy
 )
 
 ## System dependencies are found with CMake's conventions
