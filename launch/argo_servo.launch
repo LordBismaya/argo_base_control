@@ -1,11 +1,6 @@
 <?xml version="1.0"?>
 <launch>
 
- <!-- Remove turtleSim and Provide Gazebo Preview-->
- <!-- Turtlesim Node For Reference-->
-  <node pkg="turtlesim" type="turtlesim_node" name="sim"/>
-
-
  <!-- joy node -->
   <node respawn="true" pkg="joy"
         type="joy_node" name="turtle_joy" >
@@ -13,10 +8,10 @@
     <param name="deadzone" value="0.12" />
   </node>
 
-<!-- ros_serial node -->
- <node pkg="rosserial_python" type="serial_node.py" name="serial_node">
+ <!-- ros_serial node -->
+  <node pkg="rosserial_python" type="serial_node.py" name="serial_node">
     <param name="port" value="/dev/sensors/servo_arduino"/>
- </node>
+  </node>
  
  <!-- Axes -->
   <param name="axis_linear" value="1" type="int"/>

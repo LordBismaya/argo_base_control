@@ -24,14 +24,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
 #include <sensor_msgs/Joy.h>
-#include <rosserial_arduino/Adc.h>
-
-//Brake Limit ADC Values HARD
-#define HARD_HIGH_0 300
-#define HARD_LOW_0 130
-
-#define HARD_HIGH_1 275
-#define HARD_LOW_1 140
 
 
 class ArgoBaseController
@@ -41,19 +33,14 @@ public:
 
 private:
   void joyCallback(const sensor_msgs::Joy::ConstPtr& joy);
-  void brakeCallback(const rosserial_arduino::Adc::ConstPtr& brakeInfo);
-
+  
   ros::NodeHandle nh_;
 
   int linear_, angular_;
   double l_scale_, a_scale_;
 
-  ros::Publisher argo_twist_pub_;
-  ros::Publisher argo_twist_pub_R;
   ros::Subscriber argo_joy_sub_;
-  ros::Subscriber argo_brake_sub;
-  
-  int leftBrakePos, rightBrakePos;
+  ros::Publisher argo_servo_pub_;
   
 };
 
@@ -63,56 +50,24 @@ ArgoBaseController::ArgoBaseController():
   angular_(2)
 {
 
-  leftBrakePos=140;//Min. Will soon be upadated as soon as feedback is available
-  rightBrakePos=140;//Min. Will soon be updated as soon as feedback is available
   nh_.param("axis_linear", linear_, linear_);
   nh_.param("axis_angular", angular_, angular_);
   nh_.param("scale_angular", a_scale_, a_scale_);
   nh_.param("scale_linear", l_scale_, l_scale_);
 
 
-  argo_twist_pub_ = nh_.advertise<geometry_msgs::Twist>("argo_base/cmd_vel", 1);
-  argo_twist_pub_R = nh_.advertise<geometry_msgs::Twist>("roboteq_driver/argo_base/cmd_vel", 1);
+  argo_servo_pub_ = nh_.advertise<geometry_msgs::Twist>("argo_base/cmd_vel", 1);//for Servo
   argo_joy_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy", 10, &ArgoBaseController::joyCallback, this);
-  argo_brake_sub = nh_.subscribe<rosserial_arduino::Adc>("roboteq_driver/brakeInfo",10, &ArgoBaseController::brakeCallback, this);
 
-}
-
-void ArgoBaseController::brakeCallback(const rosserial_arduino::Adc::ConstPtr& brakeInfo)
-{
-  leftBrakePos=brakeInfo->adc1;
-  rightBrakePos=brakeInfo->adc0;
-  //hacky. Publish this info as Twist linear y and z
-
-  ROS_INFO("%d,%d",leftBrakePos,rightBrakePos);
 }
 
 void ArgoBaseController::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
 {
   geometry_msgs::Twist twist;
- // twist.angular.z = a_scale_*joy->axes[angular_];
-  twist.linear.x = l_scale_*joy->axes[linear_];
+ 
+  twist.linear.x = l_scale_*joy->axes[linear_];//Servo Command
   
-  twist.linear.y = leftBrakePos;
-  twist.linear.z = rightBrakePos;  
-  //HAVE TO KEEP PROVISIONS FOR IF FEEDBACK IS ENABLED
-  //If either crossess limit dont force it to go either way
-  if (leftBrakePos<HARD_LOW_1 || leftBrakePos>HARD_HIGH_1)
-    twist.angular.x=0;
-  else if (rightBrakePos<HARD_LOW_0 ||rightBrakePos>HARD_HIGH_0)
-    twist.angular.y=0;
-  //0=No action,1=FWD,-1=RVS
-  if (joy->buttons[4]==1)
-    twist.angular.x = 1;
-  else
-    twist.angular.x =-1;
-  if (joy->buttons[5]==1)
-    twist.angular.y = 1;
-  else
-    twist.angular.y = -1;
-
-  argo_twist_pub_.publish(twist);
-  argo_twist_pub_R.publish(twist);
+  argo_servo_pub_.publish(twist);
    
 }
 
