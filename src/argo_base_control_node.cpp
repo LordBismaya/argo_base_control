@@ -57,7 +57,7 @@ ArgoBaseController::ArgoBaseController():
 
 
   argo_servo_pub_ = nh_.advertise<geometry_msgs::Twist>("argo_base/cmd_vel", 1);//for Servo
-  argo_joy_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy", 10, &ArgoBaseController::joyCallback, this);
+  argo_joy_sub_ = nh_.subscribe<sensor_msgs::Joy>("roboteq_driver/joy", 10, &ArgoBaseController::joyCallback, this);
 
 }
 
