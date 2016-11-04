@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<launch>
+<!--JOYSTICK-->
+	<node respawn="true" pkg="joy" type="joy_node" name="joy_node" >
+		<param name="dev" type="string" value="/dev/input/js0" />
+		<param name="deadzone" value="0.12" />
+		<remap from="joy" to="roboteq_driver/joy"/>
+	</node>
+
+<!--CLEARPATH ARDUINO {Brake Feedback and Servo Commands}-->
+	<node pkg="rosserial_python" type="serial_node.py" name="ClearPath_serial_node">
+		<param name="port" value="/dev/sensors/servo_arduino"/>
+	</node>
+ 
+<!--ENCODER ARDUINO-->
+   <node name="arduino" pkg="ros_arduino_python" type="arduino_node.py" output="screen">
+      <rosparam file="$(find ros_arduino_python)/config/my_arduino_params.yaml" command="load" />
+   </node>
+
+<!--ROBOTEQ Node-->
+    <node pkg="roboteq_driver" type="driver_node" name="roboteq_driver" output="screen">
+		<param name="port" value="/dev/sensors/roboteq" />
+		<param name="value" value="9600" />
+	</node>
+
+<!-- Servo Commands Node -->
+		<param name="axis_linear" value="1" type="int"/>
+		<param name="axis_angular" value="0" type="int"/>
+		<param name="scale_linear" value="150" type="double"/>
+		<param name="scale_angular" value="250" type="double"/>
+	<node pkg="argo_base_control" type="argo_base_control_node" name="argo_base_controller"/>
+
+<!-- IMU Node-->
+  <node pkg="microstrain_3dmgx2_imu" type="imu_node" name="microstrain_3dmgx2_node" output="screen">
+    <param name="time_offset" value="-0.040" />
+    <param name="port"  type="string" value="/dev/sensors/microstrain_IMU" />
+    <param name="autostart" type="bool" value="true" />
+    <param name="frameid"  type="string" value="imu" />
+    <param name="autocalibrate" type="bool" value="true" />
+    <param name="angular_velocity_stdev" type="double" value="0.00017" />
+  </node>
+  
+  <!--GPS Node-->
+  <node pkg="nmea_navsat_driver" type="nmea_serial_driver" name="nmea_serial_driver" output="screen">
+    <param name="port"  type="string" value="/dev/sensors/garmin_gps" />
+    <param name="autostart" type="bool" value="true" />
+    <param name="baud" type="string" value="4800" />
+  </node>
+  
+ <!--PointGrey Camera-->
+ <arg name="camera_serial" default="0" />
+  <arg name="calibrated" default="1" />
+
+  <group ns="camera">
+    <node pkg="nodelet" type="nodelet" name="camera_nodelet_manager" args="manager" />
+
+    <node pkg="nodelet" type="nodelet" name="camera_nodelet"
+          args="load pointgrey_camera_driver/PointGreyCameraNodelet camera_nodelet_manager" >
+      <param name="frame_id" value="camera" />
+      <param name="serial" value="$(arg camera_serial)" />
+	  <param name="frame_rate" value="60"/>
+	  <param name="format7_roi_width" value="640" />
+	  <param name="format7_roi_height" value="480" />
+	  <!-- When unspecified, the driver will use the default framerate as given by the
+           camera itself. Use this parameter to override that value for cameras capable of
+           other framerates. -->
+      <!-- <param name="frame_rate" value="15" /> -->
+      
+      <!-- Use the camera_calibration package to create this file -->
+      <param name="camera_info_url" if="$(arg calibrated)"
+             value="file://$(env HOME)/.ros/camera_info/$(arg camera_serial).yaml" />
+    </node>
+
+    <node pkg="nodelet" type="nodelet" name="image_proc_debayer"
+          args="load image_proc/debayer camera_nodelet_manager">
+    </node>
+  </group>
+  
+  <!--Logitech Camera-->
+   <include file="$(find video_stream_opencv)/launch/camera.launch" >
+   		<!-- node name and ros graph name -->
+	  	<arg name="camera_name" value="logi" />
+	  	<!-- means video device 0, /dev/sensors/logitech_webcam-->
+	  	<arg name="video_stream_provider" value="0" />
+	  	<!-- throttling the querying of frames to -->
+	  	<arg name="fps" value="30" />
+	  	<!-- setting frame_id -->
+	  	<arg name="frame_id" value="webcam_optical_frame" />
+	  	<!-- camera info loading, take care as it needs the "file:///" at the start , e.g.:
+	  	"file:///$(find your_camera_package)/config/yo0r_camera.yaml" -->
+	  	<arg name="camera_info_url" value="" />
+	  	<!-- flip the image horizontally (mirror it) -->
+	  	<arg name="flip_horizontal" value="false" />
+	  	<!-- flip the image vertically -->
+	  	<arg name="flip_vertical" value="false" />
+	  	<!-- visualize on an image_view window the stream generated -->
+	  	<arg name="visualize" value="true" />
+   </include>
+   
+  
+
+</launch>
